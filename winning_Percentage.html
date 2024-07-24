@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>にぃとちゃんカスタム戦績</title>
+    <script type="module" src="firebase_SDK.js"></script>
+    <script type="module" src="winning_Percentage.js"></script>
+    <style>
+        .sortable {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h3>戦績</h3>
+    <table id="summoner-table" border="1">
+        <thead>
+            <tr>
+                <th>名前</th>
+                <th>勝ち</th>
+                <th>負け</th>
+                <th>
+                    試合数
+                    <button class="sortable" data-sort="matches-asc">↑</button>
+                    <button class="sortable" data-sort="matches-desc">↓</button>
+                </th>
+                <th>
+                    勝率
+                    <button class="sortable" data-sort="winrate-asc">↑</button>
+                    <button class="sortable" data-sort="winrate-desc">↓</button>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 데이터가 여기에 추가됩니다. -->
+        </tbody>
+    </table>
+</body>
+</html>
