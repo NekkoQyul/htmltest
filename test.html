@@ -6,103 +6,100 @@
     <title>にぃとちゃんカスタム戦績</title>
     <script type="module">
         // Firebase SDK 모듈 불러오기
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
-// Firebase 설정
-const firebaseConfig = {
-    apiKey: "AIzaSyBioYVdSd1mDUd2EiezVCS2a6BmcoWTB04",
-    authDomain: "qwer-e018d.firebaseapp.com",
-    databaseURL: "https://qwer-e018d-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "qwer-e018d",
-    storageBucket: "qwer-e018d.appspot.com",
-    messagingSenderId: "483116214677",
-    appId: "1:483116214677:web:78fa933b3cdeb51ec2ae9c",
-    measurementId: "G-C3HTEK9SGH"
-};
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBioYVdSd1mDUd2EiezVCS2a6BmcoWTB04",
+            authDomain: "qwer-e018d.firebaseapp.com",
+            databaseURL: "https://qwer-e018d-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "qwer-e018d",
+            storageBucket: "qwer-e018d.appspot.com",
+            messagingSenderId: "483116214677",
+            appId: "1:483116214677:web:78fa933b3cdeb51ec2ae9c",
+            measurementId: "G-C3HTEK9SGH"
+        };
 
-// Firebase 초기화
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth();
-const database = getDatabase(app);
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth();
+        const database = getDatabase(app);
 
-export { app, analytics, auth, database };
-        
+        export { app, analytics, auth, database }; 
     </script>
     <script type="module">
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-document.addEventListener('DOMContentLoaded', () => {
-    const db = getDatabase();
-    const summonerRef = ref(db, 'Summoner Name'); // Firebase 경로 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            const db = getDatabase();
+            const summonerRef = ref(db, 'Summoner Name'); // Firebase 경로 설정
 
-    // 데이터 배열을 저장할 변수
-    let dataArr = [];
+            let dataArr = [];
 
-    // 테이블의 tbody를 업데이트하는 함수
-    function updateTable(data) {
-        dataArr = Object.entries(data); // 데이터를 배열로 변환
-        const tableBody = document.querySelector('#summoner-table tbody');
-        tableBody.innerHTML = ''; // 테이블 비우기
+            // 테이블의 tbody를 업데이트하는 함수
+            function updateTable() {
+                const tableBody = document.querySelector('#summoner-table tbody');
+                tableBody.innerHTML = ''; // 테이블 비우기
 
-        dataArr.forEach(([key, value]) => {
-            const totalMatches = (value.wins || 0) + (value.losses || 0); // 총 시합수 계산
-            const winRate = totalMatches > 0 ? ((value.wins || 0) / totalMatches * 100).toFixed(2) + '%' : '0.00%'; // 승률 계산 및 % 추가
+                dataArr.forEach((value) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${value.name}</td>
+                        <td>${value.wins}</td>
+                        <td>${value.losses}</td>
+                        <td>${value.matches}</td>
+                        <td>${value.winRate}%</td> <!-- 승률에 % 추가 -->
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${key}</td>
-                <td>${value.wins || 0}</td>
-                <td>${value.losses || 0}</td>
-                <td>${totalMatches}</td>
-                <td>${winRate}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-    }
+            // Firebase 데이터 수신 및 테이블 업데이트
+            onValue(summonerRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    dataArr = Object.entries(data).map(([key, value]) => {
+                        const totalMatches = (value.wins || 0) + (value.losses || 0);
+                        const winRate = totalMatches > 0 ? ((value.wins || 0) / totalMatches * 100).toFixed(2) : 0;
+                        return {
+                            name: key,
+                            wins: value.wins || 0,
+                            losses: value.losses || 0,
+                            matches: totalMatches,
+                            winRate: winRate
+                        };
+                    });
+                    // 기본적으로 시합수 기준으로 내림차순 정렬
+                    sortTable('matches', 'desc');
+                }
+            });
 
-    // 테이블 정렬 함수
-    function sortTable(sortKey, sortOrder) {
-        const sortedData = [...dataArr].sort((a, b) => {
-            const [keyA, valueA] = a;
-            const [keyB, valueB] = b;
-            const totalMatchesA = (valueA.wins || 0) + (valueA.losses || 0);
-            const totalMatchesB = (valueB.wins || 0) + (valueB.losses || 0);
-            const winRateA = totalMatchesA > 0 ? (valueA.wins || 0) / totalMatchesA : 0;
-            const winRateB = totalMatchesB > 0 ? (valueB.wins || 0) / totalMatchesB : 0;
+            // 테이블 정렬 함수
+            window.sortTable = function(column, order) {
+                dataArr.sort((a, b) => {
+                    let aValue = a[column];
+                    let bValue = b[column];
 
-            if (sortKey === 'matches') {
-                return sortOrder === 'asc' ? totalMatchesA - totalMatchesB : totalMatchesB - totalMatchesA;
-            } else if (sortKey === 'winrate') {
-                return sortOrder === 'asc' ? winRateA - winRateB : winRateB - winRateA;
+                    // winRate는 문자열 형태의 퍼센티지 값을 숫자로 변환
+                    if (column === 'winRate') {
+                        aValue = parseFloat(aValue);
+                        bValue = parseFloat(bValue);
+                    }
+
+                    if (order === 'asc') {
+                        return aValue - bValue;
+                    } else {
+                        return bValue - aValue;
+                    }
+                });
+
+                updateTable();
             }
         });
-
-        updateTable(Object.fromEntries(sortedData));
-    }
-
-    // Firebase 데이터 수신 및 테이블 업데이트
-    onValue(summonerRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            updateTable(data);
-            // 기본적으로 시합수 기준으로 내림차순 정렬
-            sortTable('matches', 'desc');
-        }
-    });
-
-    // 정렬 버튼 클릭 이벤트 처리
-    document.querySelectorAll('.sortable').forEach(button => {
-        button.addEventListener('click', (event) => {
-            const sortKey = event.target.getAttribute('data-sort').split('-')[0];
-            const sortOrder = event.target.getAttribute('data-sort').split('-')[1];
-            sortTable(sortKey, sortOrder);
-        });
-    });
-});
 
     </script>
     <style>
@@ -112,22 +109,20 @@ document.addEventListener('DOMContentLoaded', () => {
     </style>
 </head>
 <body>
-    <h3>戦績</h3>
+    <h3>勝率</h3>
     <table id="summoner-table" border="1">
         <thead>
             <tr>
                 <th>名前</th>
                 <th>勝ち</th>
                 <th>負け</th>
-                <th>
-                    試合数
-                    <button class="sortable" data-sort="matches-asc">↑</button>
-                    <button class="sortable" data-sort="matches-desc">↓</button>
+                <th>試合数
+                    <button onclick="sortTable('matches', 'asc')">↑</button>
+                    <button onclick="sortTable('matches', 'desc')">↓</button>
                 </th>
-                <th>
-                    勝率
-                    <button class="sortable" data-sort="winrate-asc">↑</button>
-                    <button class="sortable" data-sort="winrate-desc">↓</button>
+                <th>勝率
+                    <button onclick="sortTable('winRate', 'asc')">↑</button>
+                    <button onclick="sortTable('winRate', 'desc')">↓</button>
                 </th>
             </tr>
         </thead>
