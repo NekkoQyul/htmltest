@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Sheets to HTML Table</title>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    th {
+      position: relative;
+      cursor: pointer;
+    }
+    .sort-button {
+      margin-left: 5px;
+      font-size: 12px;
+      border: none;
+      background-color: transparent;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+    <h1>検索</h1>
+  
+    <form id="update-cell-form">
+      <label for="cell-value"> 名前:</label>
+      <select id="cell-value" name="cell-value">
+        <!-- 옵션이 여기 추가됩니다 -->
+      </select>
+      <button type="button" onclick="updateCell()">検索</button>
+    </form>
+  
+  <table id="data-table">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let globalData = []; // 데이터를 전역 변수로 저장
+    let j3Value = ''; // J3 셀 값을 저장할 변수
+
+    function start() {
+      gapi.load('client', initClient);
+    }
+
+    function initClient() {
+      gapi.client.init({
+        apiKey: 'AIzaSyClqiPHaLV7YaxtbupT_J3dw8yyEWVB5j8',
+        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+      }).then(() => {
+        console.log('Google Sheets API 클라이언트 초기화 완료.');
+        return gapi.client.sheets.spreadsheets.values.batchGet({
+          spreadsheetId: '108gLlEpTaKI4TsHt50TdQaM-Ip8IEsADowwTAhcp2dk',
+          ranges: ['戦績表示!J4:O', '戦績表示!B5:B', '戦績表示!J3'] // 세 번째 범위 추가
+        });
+      }).then(response => {
+        const data = response.result.valueRanges;
+        globalData = data[0].values; // 첫 번째 범위 데이터를 전역 변수에 저장
+        const comboBoxData = data[1].values; // 두 번째 범위 데이터를 콤보 박스용으로 저장
+        j3Value = data[2].values[0][0]; // 세 번째 범위(J3 셀 값) 저장
+
+        console.log('Google Sheets에서 데이터 가져옴:', globalData);
+        sortTable(2, 'desc'); // 기본적으로 L열(인덱스 2) 기준으로 내림차순 정렬
+        renderTable(globalData);
+        populateComboBox(comboBoxData);
+      }).catch(error => {
+        console.error('오류:', error);
+        alert(`오류: ${error.result.error.message || error.message}`);
+      });
+    }
+
+    function renderTable(data) {
+      const table = document.getElementById('data-table');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      
+      if (data && data.length > 0) {
+        // 테이블 헤더 생성
+        const headers = data[0];
+        let headerRow = '<tr>';
+        headers.forEach((header, index) => {
+          headerRow += '<th>';
+          headerRow += `${header}`;
+          if (index === 2 || index === 4 || index === 5) { // L열 (인덱스 2), N열 (인덱스 4), O열 (인덱스 5) 에 버튼 추가
+            headerRow += `<button class="sort-button" onclick="sortTable(${index}, 'asc')">▲</button>`;
+            headerRow += `<button class="sort-button" onclick="sortTable(${index}, 'desc')">▼</button>`;
+          }
+          headerRow += '</th>';
+        });
+        headerRow += '</tr>';
+        thead.innerHTML = headerRow;
+        
+        // 테이블 행 생성
+        let rows = '';
+        for (let i = 1; i < data.length; i++) {
+          let row = '<tr>';
+          data[i].forEach(cell => {
+            row += `<td>${cell}</td>`;
+          });
+          row += '</tr>';
+          rows += row;
+        }
+        tbody.innerHTML = rows;
+      } else {
+        console.log('데이터가 없습니다.');
+      }
+    }
+
+    function populateComboBox(data) {
+      const comboBox = document.getElementById('cell-value');
+      data.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item[0];
+        option.text = item[0];
+        comboBox.appendChild(option);
+      });
+      // 콤보박스의 기본값을 J3 셀 값으로 설정
+      comboBox.value = j3Value;
+    }
+
+    function sortTable(columnIndex, order) {
+      if (!globalData || globalData.length === 0) {
+        console.log('정렬할 데이터가 없습니다.');
+        return;
+      }
+
+      // 헤더 행을 건너뛰고 정렬
+      const headers = globalData[0];
+      const rows = globalData.slice(1);
+
+      rows.sort((a, b) => {
+        const valA = a[columnIndex] || '';
+        const valB = b[columnIndex] || '';
+
+        // 숫자로 변환할 수 있는 경우 숫자로 변환
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        const isNumA = !isNaN(numA);
+        const isNumB = !isNaN(numB);
+
+        let comparison = 0;
+        if (isNumA && isNumB) {
+          comparison = numA - numB;
+        } else {
+          comparison = valA.localeCompare(valB);
+        }
+
+        return order === 'asc' ? comparison : -comparison;
+      });
+
+      // 정렬된 데이터를 다시 조립
+      globalData = [headers, ...rows]; // 전역 변수에 저장
+      renderTable(globalData);
+    }
+
+    gapi.load('client', start);
+  </script>
+
+  <script>
+    function updateCell() {
+      const cellValue = document.getElementById('cell-value').value;
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbzyouHkiFsbEzh-lDIUPZAK2oa5oAij3GqxoE3wAvhSzmv4Th_VCZRdtYLUJzbg09ny/exec?value=' + encodeURIComponent(cellValue);
+      fetch(scriptUrl)
+        .then(response => response.text())
+        .then(data => {
+          console.log(data);
+          alert('J3 셀 업데이트 완료');
+          location.reload(); // 페이지 새로고침
+        })
+        .catch(error => {
+          console.error('셀 업데이트 중 오류 발생:', error);
+          alert('셀 업데이트 중 오류 발생');
+        });
+    }
+  </script>
+</body>
+</html>

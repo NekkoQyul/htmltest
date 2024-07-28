@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Sheets to HTML Table</title>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    th {
+      position: relative;
+      cursor: pointer;
+    }
+    .sort-button {
+      margin-left: 5px;
+      font-size: 12px;
+      border: none;
+      background-color: transparent;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>勝率</h1>
+  
+  <table id="data-table">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let globalData = []; // 데이터를 전역 변수로 저장
+
+    function start() {
+      gapi.load('client', initClient);
+    }
+
+    function initClient() {
+      gapi.client.init({
+        apiKey: 'AIzaSyClqiPHaLV7YaxtbupT_J3dw8yyEWVB5j8',
+        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+      }).then(() => {
+        console.log('Google Sheets API client initialized.');
+        return gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: '108gLlEpTaKI4TsHt50TdQaM-Ip8IEsADowwTAhcp2dk',
+          range: '戦績表示!B4:F' // 시트 이름과 범위를 올바르게 지정
+        });
+      }).then(response => {
+        globalData = response.result.values; // 데이터를 전역 변수에 저장
+        console.log('Data retrieved from Google Sheets:', globalData);
+        renderTable(globalData);
+      }).catch(error => {
+        console.error('Error:', error);
+        alert(`Error: ${error.result.error.message || error.message}`);
+      });
+    }
+
+    function renderTable(data) {
+      const table = document.getElementById('data-table');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      
+      if (data && data.length > 0) {
+        // Create table header
+        const headers = data[0];
+        let headerRow = '<tr>';
+        headers.forEach((header, index) => {
+          headerRow += '<th>';
+          headerRow += `${header}`;
+          if (index === 3 || index === 4) { // D열과 E열에만 버튼 추가
+            headerRow += `
+              <button class="sort-button" onclick="sortTable(${index}, 'asc')">▲</button>
+              <button class="sort-button" onclick="sortTable(${index}, 'desc')">▼</button>`;
+          }
+          headerRow += '</th>';
+        });
+        headerRow += '</tr>';
+        thead.innerHTML = headerRow;
+        
+        // Create table rows
+        let rows = '';
+        for (let i = 1; i < data.length; i++) {
+          let row = '<tr>';
+          data[i].forEach(cell => {
+            row += `<td>${cell}</td>`;
+          });
+          row += '</tr>';
+          rows += row;
+        }
+        tbody.innerHTML = rows;
+      } else {
+        console.log('No data found.');
+      }
+    }
+
+    function sortTable(columnIndex, order) {
+      if (!globalData || globalData.length === 0) {
+        console.log('No data to sort.');
+        return;
+      }
+
+      // Skip header row for sorting
+      const headers = globalData[0];
+      const rows = globalData.slice(1);
+
+      rows.sort((a, b) => {
+        const valA = a[columnIndex] || '';
+        const valB = b[columnIndex] || '';
+
+        // Convert to numbers if possible
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        const isNumA = !isNaN(numA);
+        const isNumB = !isNaN(numB);
+
+        let comparison = 0;
+        if (isNumA && isNumB) {
+          comparison = numA - numB;
+        } else {
+          comparison = valA.localeCompare(valB);
+        }
+
+        return order === 'asc' ? comparison : -comparison;
+      });
+
+      // Reassemble the sorted data
+      const sortedData = [headers, ...rows];
+      renderTable(sortedData);
+    }
+
+    gapi.load('client', start);
+  </script>
+</body>
+</html>
