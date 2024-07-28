@@ -72,7 +72,7 @@
         populateComboBox(comboBoxData);
       }).catch(error => {
         console.error('오류:', error);
-        alert(`오류: ${error.result.error.message || error.message}`);
+        //alert(`오류: ${error.result.error.message || error.message}`);
       });
     }
 
@@ -171,12 +171,12 @@
         .then(response => response.text())
         .then(data => {
           console.log(data);
-          alert('J3 셀 업데이트 완료');
+          //alert('J3 셀 업데이트 완료');
           location.reload(); // 페이지 새로고침
         })
         .catch(error => {
           console.error('셀 업데이트 중 오류 발생:', error);
-          alert('셀 업데이트 중 오류 발생');
+          //alert('셀 업데이트 중 오류 발생');
         });
     }
   </script>
